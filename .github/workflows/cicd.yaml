@@ -1,0 +1,115 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/weather-app
+  DOCKER_TAG: ${{ github.sha }}
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: weather-app-eks
+  NAMESPACE: pythonapp-dev
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+            ${{ env.DOCKER_IMAGE }}:latest
+
+  terraform-and-deploy:
+    name: Infrastructure & Kubernetes Deploy
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Terraform Init & Apply
+        working-directory: ./terraform
+        run: |
+          terraform init
+          terraform apply -auto-approve \
+            -var="mysql_username=${{ secrets.DB_USERNAME }}" \
+            -var="mysql_password=${{ secrets.DB_PASSWORD }}"
+
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Install AWS Load Balancer Controller
+        run: |
+          helm repo add eks https://aws.github.io/eks-charts
+          helm repo update
+          # We set create=true so Helm builds the SA, then we'll annotate it for IAM
+          helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+            -n kube-system \
+            --set clusterName=${{ env.EKS_CLUSTER_NAME }} \
+            --set serviceAccount.create=true \
+            --set serviceAccount.name=aws-load-balancer-controller
+          
+          # Annotate the SA with the IAM role from your iam.tf
+          # Replace YOUR_ACCOUNT_ID with 668227158023
+          kubectl annotate serviceaccount aws-load-balancer-controller \
+            -n kube-system \
+            eks.amazonaws.com/role-arn=arn:aws:iam::668227158023:role/aws-load-balancer-controller-role --overwrite
+
+      - name: Deploy to Kubernetes
+        run: |
+          # Create namespace if it doesn't exist
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Update the image tag in deployment.yaml
+          sed -i "s|image: .*|image: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}|g" k8s/deployment.yaml
+          
+          # Apply manifests
+          kubectl apply -f k8s/serviceaccount.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/deployment.yaml
+          
+          # Verify rollout
+          kubectl rollout status deployment/weather-app -n ${{ env.NAMESPACE }} --timeout=300s
+
+      - name: Get NLB URL
+        run: |
+          echo "Waiting for NLB DNS..."
+          sleep 30
+          echo "Your Application is available at:"
+          kubectl get svc weather-service -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'

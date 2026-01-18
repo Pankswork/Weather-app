@@ -1,0 +1,70 @@
+# 1. THE BRIDGE: ServiceAccount
+# This links your Pod to the IAM Role 'weather-app-pod-role'
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: weather-app-sa
+  namespace: pythonapp-dev
+  annotations:
+    # REPLACEMENT REQUIRED: Put your AWS Account ID here
+    eks.amazonaws.com/role-arn: arn:aws:iam::668227158023:role/weather-app-pod-role
+---
+# 2. THE APP: Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-app
+  namespace: pythonapp-dev
+  labels:
+    app: weather-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: weather-app
+  template:
+    metadata:
+      labels:
+        app: weather-app
+    spec:
+      serviceAccountName: weather-app-sa # Tells K8s to use the IAM role above
+      containers:
+      - name: weather-app
+        image: pankswork/weather-app:latest # Your Docker Hub image
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        
+        # Environment Variables for app.py logic
+        env:
+        - name: USE_AWS_SECRETS
+          value: "true"
+        - name: AWS_REGION
+          value: "us-east-1"
+        - name: AWS_SECRET_NAME
+          value: "weather-app-db-creds"
+        - name: WEATHER_API_KEY
+          value: "483e983c9fe94662b4a132638252407"
+
+        # Resources: Prevents one pod from crashing the whole node
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+
+        # Probes: EKS will auto-restart the pod if /health fails
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 20
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
