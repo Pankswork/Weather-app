@@ -1,0 +1,15 @@
+# Byte-compiled / cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments       
+venv/
+.env
+terraform/
+*.md
+*.sh
+aws/
+awscliv2.zip
+.DS_Store

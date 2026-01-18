@@ -1,0 +1,8 @@
+flask
+requests
+python-dotenv
+mysql-connector-python
+cryptography
+boto3
+gunicorn
+prometheus_client
