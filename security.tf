@@ -49,6 +49,14 @@ resource "aws_security_group" "eks_nodes_sg" {
     self      = true
   }
 
+  # Allow the EKS Control Plane to talk to the Webhook on port 9443
+  ingress {
+    from_port   = 9443
+    to_port     = 9443
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr] # Or more specifically: [aws_eks_cluster.weather_cluster.vpc_config[0].cluster_security_group_id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
