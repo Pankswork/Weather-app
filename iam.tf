@@ -65,7 +65,7 @@ resource "aws_iam_policy" "app_secrets_policy" {
     Statement = [{
       Action   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
       Effect   = "Allow"
-      Resource = [aws_secretsmanager_secret.db_secret.arn]
+      Resource = ["${aws_secretsmanager_secret.db_secret.arn}*"]
     }]
   })
 }
@@ -75,8 +75,7 @@ resource "aws_iam_role_policy_attachment" "attach_app_secrets" {
   policy_arn = aws_iam_policy.app_secrets_policy.arn
 }
 
-# --- LOAD BALANCER CONTROLLER POLICY ---
-# Required for your service.yaml to create an NLB
+# 1. The Role (Correct)
 resource "aws_iam_role" "lbc_role" {
   name = "aws-load-balancer-controller-role"
   assume_role_policy = jsonencode({
@@ -94,12 +93,16 @@ resource "aws_iam_role" "lbc_role" {
   })
 }
 
-# This provides the actual permissions the Controller needs to manage ALBs/NLBs
+# 2. The Custom Policy (Correct)
+resource "aws_iam_policy" "lbc_iam_policy" {
+  name        = "AWSLoadBalancerControllerIAMPolicy"
+  description = "Permissions for the AWS Load Balancer Controller"
+  # Make sure you ran the 'curl' command to download this file!
+  policy = file("${path.module}/lbc_iam_policy.json")
+}
+
+# 3. The Attachment (Only ONE block allowed)
 resource "aws_iam_role_policy_attachment" "lbc_policy_attach" {
-  role = aws_iam_role.lbc_role.name
-  # Note: You usually need to create this policy or use the official AWS one
-  # For now, we will use a common managed policy that covers most ELB actions
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  # Recommendation: In a real prod environment, download the official LBC 
-  # JSON policy from AWS and create a custom aws_iam_policy for this.
+  role       = aws_iam_role.lbc_role.name
+  policy_arn = aws_iam_policy.lbc_iam_policy.arn
 }
