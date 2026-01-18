@@ -33,15 +33,15 @@ resource "aws_security_group" "eks_nodes_sg" {
   description = "EKS Worker Node communication"
   vpc_id      = aws_vpc.weather_vpc.id
 
-  # Rule A: Allow traffic from ALB to the Python App
+  # Rule A: Corrected to allow VPC traffic to the Python App
   ingress {
-    from_port       = 5000
-    to_port         = 5000
-    protocol        = "tcp"
-    security_groups = [var.vpc_cidr]
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr] # Use cidr_blocks for IP ranges
   }
 
-  # Rule B: CRITICAL - Allow nodes to talk to each other (K8s Networking)
+  # Rule B: Allow nodes to talk to each other (K8s Networking)
   ingress {
     from_port = 0
     to_port   = 0
