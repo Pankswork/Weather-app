@@ -69,28 +69,31 @@ jobs:
             -var="mysql_username=${{ secrets.DB_USERNAME }}" \
             -var="mysql_password=${{ secrets.DB_PASSWORD }}"
 
-      - name: Update Kubeconfig
-        run: |
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
-
       - name: Install AWS Load Balancer Controller
         run: |
+          # 1. Get the VPC ID from AWS (since Terraform just created it)
+          VPC_ID=$(aws eks describe-cluster --name ${{ env.EKS_CLUSTER_NAME }} --query "cluster.resourcesVpcConfig.vpcId" --output text)
+          
           helm repo add eks https://aws.github.io/eks-charts
           helm repo update
-          # We set create=true so Helm builds the SA, then we'll annotate it for IAM
+          
+          # 2. Install with explicit Region and VPC ID
           helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
             -n kube-system \
             --set clusterName=${{ env.EKS_CLUSTER_NAME }} \
             --set serviceAccount.create=true \
-            --set serviceAccount.name=aws-load-balancer-controller
+            --set serviceAccount.name=aws-load-balancer-controller \
+            --set region=${{ env.AWS_REGION }} \
+            --set vpcId=$VPC_ID
           
-          # Annotate the SA with the IAM role from your iam.tf
-          # Replace YOUR_ACCOUNT_ID with 668227158023
+          # 3. Annotate the SA (keep this as you had it)
           kubectl annotate serviceaccount aws-load-balancer-controller \
             -n kube-system \
             eks.amazonaws.com/role-arn=arn:aws:iam::668227158023:role/aws-load-balancer-controller-role --overwrite
-          echo "Waiting for Load Balancer Controller to be ready..."
-          kubectl rollout status deployment/aws-load-balancer-controller -n kube-system --timeout=120s
+          
+          # 4. Wait for it to be ready
+          echo "Waiting for AWS Load Balancer Controller to be ready..."
+          kubectl rollout status deployment/aws-load-balancer-controller -n kube-system --timeout=180s
 
       - name: Deploy to Kubernetes
         run: |
