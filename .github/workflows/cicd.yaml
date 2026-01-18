@@ -69,15 +69,19 @@ jobs:
             -var="mysql_username=${{ secrets.DB_USERNAME }}" \
             -var="mysql_password=${{ secrets.DB_PASSWORD }}"
 
+      # CRITICAL: This MUST happen before Helm starts
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+
       - name: Install AWS Load Balancer Controller
         run: |
-          # 1. Get the VPC ID from AWS (since Terraform just created it)
+          # Dynamically get the VPC ID from AWS
           VPC_ID=$(aws eks describe-cluster --name ${{ env.EKS_CLUSTER_NAME }} --query "cluster.resourcesVpcConfig.vpcId" --output text)
           
           helm repo add eks https://aws.github.io/eks-charts
           helm repo update
           
-          # 2. Install with explicit Region and VPC ID
           helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
             -n kube-system \
             --set clusterName=${{ env.EKS_CLUSTER_NAME }} \
@@ -85,30 +89,25 @@ jobs:
             --set serviceAccount.name=aws-load-balancer-controller \
             --set region=${{ env.AWS_REGION }} \
             --set vpcId=$VPC_ID
-          
-          # 3. Annotate the SA (keep this as you had it)
+
+          # Annotate for IAM permissions
           kubectl annotate serviceaccount aws-load-balancer-controller \
             -n kube-system \
             eks.amazonaws.com/role-arn=arn:aws:iam::668227158023:role/aws-load-balancer-controller-role --overwrite
           
-          # 4. Wait for it to be ready
-          echo "Waiting for AWS Load Balancer Controller to be ready..."
+          echo "Waiting for Load Balancer Controller to be ready..."
           kubectl rollout status deployment/aws-load-balancer-controller -n kube-system --timeout=180s
 
       - name: Deploy to Kubernetes
         run: |
-          # Create namespace if it doesn't exist
           kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
           
-          # Update the image tag in deployment.yaml
           sed -i "s|image: .*|image: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}|g" k8s/deployment.yaml
           
-          # Apply manifests
           kubectl apply -f k8s/serviceaccount.yaml
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/deployment.yaml
           
-          # Verify rollout
           kubectl rollout status deployment/weather-app -n ${{ env.NAMESPACE }} --timeout=300s
 
       - name: Get NLB URL
