@@ -56,15 +56,22 @@ spec:
             memory: "1Gi"
 
         # Probes: EKS will auto-restart the pod if /health fails
+        # This keeps the app alive for up to 5 minutes while it waits for RDS
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          failureThreshold: 30
+          periodSeconds: 10
+        
         livenessProbe:
           httpGet:
             path: /health
             port: 5000
-          initialDelaySeconds: 80  # Increased from 60
           periodSeconds: 30
+          
         readinessProbe:
           httpGet:
             path: /health
             port: 5000
-          initialDelaySeconds: 40  # Increased from 30
           periodSeconds: 10
