@@ -59,16 +59,17 @@ resource "aws_eks_node_group" "weather_nodes" {
 }
 
 # This allows YOUR user to see pods in the AWS Console
-resource "aws_eks_access_entry" "console_user" {
+# Add this so your ROOT account can also see the pods
+resource "aws_eks_access_entry" "root_user" {
   cluster_name  = aws_eks_cluster.weather_cluster.name
-  principal_arn = "arn:aws:iam::668227158023:user/Weather_admin" # Change to your actual IAM user
+  principal_arn = "arn:aws:iam::668227158023:root" # The 'root' principal
   type          = "STANDARD"
 }
 
-resource "aws_eks_access_policy_association" "console_admin" {
+resource "aws_eks_access_policy_association" "root_admin" {
   cluster_name  = aws_eks_cluster.weather_cluster.name
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-  principal_arn = "arn:aws:iam::668227158023:user/Weather_admin"
+  principal_arn = "arn:aws:iam::668227158023:root"
 
   access_scope {
     type = "cluster"
