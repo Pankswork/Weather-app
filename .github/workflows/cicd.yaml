@@ -69,14 +69,20 @@ jobs:
             -var="mysql_username=${{ secrets.DB_USERNAME }}" \
             -var="mysql_password=${{ secrets.DB_PASSWORD }}"
 
-      # CRITICAL: This MUST happen before Helm starts
       - name: Update Kubeconfig
         run: |
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
 
+      # FIX: Ensure Weather_admin has cluster-admin rights within K8s RBAC
+      - name: Ensure RBAC for Helm
+        run: |
+          kubectl create clusterrolebinding weather-admin-helm-binding \
+            --clusterrole=cluster-admin \
+            --user=arn:aws:iam::668227158023:user/Weather_admin \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Install AWS Load Balancer Controller
         run: |
-          # Dynamically get the VPC ID from AWS
           VPC_ID=$(aws eks describe-cluster --name ${{ env.EKS_CLUSTER_NAME }} --query "cluster.resourcesVpcConfig.vpcId" --output text)
           
           helm repo add eks https://aws.github.io/eks-charts
@@ -90,19 +96,18 @@ jobs:
             --set region=${{ env.AWS_REGION }} \
             --set vpcId=$VPC_ID
 
-          # Annotate for IAM permissions
           kubectl annotate serviceaccount aws-load-balancer-controller \
             -n kube-system \
             eks.amazonaws.com/role-arn=arn:aws:iam::668227158023:role/aws-load-balancer-controller-role --overwrite
           
-          echo "Waiting for Load Balancer Controller to be ready..."
           kubectl rollout status deployment/aws-load-balancer-controller -n kube-system --timeout=180s
 
       - name: Deploy to Kubernetes
         run: |
           kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
           
-          sed -i "s|image: .*|image: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}|g" k8s/deployment.yaml
+          # Replace image tag in deployment
+          sed -i "s|image: ${{ env.DOCKER_IMAGE }}:.*|image: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}|g" k8s/deployment.yaml
           
           kubectl apply -f k8s/serviceaccount.yaml
           kubectl apply -f k8s/service.yaml
@@ -110,13 +115,13 @@ jobs:
           
           kubectl rollout status deployment/weather-app -n ${{ env.NAMESPACE }} --timeout=300s
       
+      # FIX: Corrected multi-line syntax for Monitoring Stack
       - name: Deploy Monitoring Stack
         run: |
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
           helm repo update
-          # We add the 'serviceMonitorSelectorNilUsesHelmValues' flag so it finds your app!
           helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
-            --namespace monitoring \                  
+            --namespace monitoring \
             --create-namespace \
             --set grafana.service.type=LoadBalancer \
             --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
@@ -125,7 +130,6 @@ jobs:
       - name: Get NLB URL
         run: |
           echo "Waiting for AWS to provision the Load Balancer DNS..."
-          # Loop until the hostname is actually available
           for i in {1..20}; do
             URL=$(kubectl get svc weather-service -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
             if [ -n "$URL" ]; then
