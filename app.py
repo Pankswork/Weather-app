@@ -8,10 +8,10 @@ from datetime import datetime, timezone
 import boto3
 import requests
 import mysql.connector
-from mysql.connector import Error, PoolError
+from mysql.connector import Error, pooling
 from dotenv import load_dotenv
 from flask import Flask, request, render_template, jsonify
-from prometheus_client import Counter, Histogram, Gauge, CollectorRegistry, make_wsgi_app
+from prometheus_client import Counter, CollectorRegistry, make_wsgi_app
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 load_dotenv()
@@ -30,65 +30,72 @@ def get_secret():
     secret_name = os.getenv("AWS_SECRET_NAME", "weather-app-db-creds")
     region_name = os.getenv("AWS_REGION", "us-east-1")
 
-    # Create a Secrets Manager client
     session = boto3.session.Session()
     client = session.client(service_name='secretsmanager', region_name=region_name)
 
     try:
         get_secret_value_response = client.get_secret_value(SecretId=secret_name)
-        # Parse the JSON string into a dictionary
         return json.loads(get_secret_value_response['SecretString'])
     except Exception as e:
         logger.error(f"Failed to retrieve secret {secret_name}: {e}")
         return None
 
 # Determine Database Configuration
-# In EKS, we set USE_AWS_SECRETS=true
 if os.getenv("USE_AWS_SECRETS", "false").lower() == "true":
     logger.info("Fetching configuration from AWS Secrets Manager...")
     creds = get_secret()
     if creds:
         db_config = {
-            'host': creds['host'],      # Matches your Refined database.tf
-            'user': creds['username'],  # Matches your Refined database.tf
+            'host': creds['host'],
+            'user': creds['username'],
             'password': creds['password'],
             'database': creds['dbname'],
             'port': creds['port'],
             'pool_name': 'weather_app_pool',
-            'pool_size': 10,
-            'pool_reset_session': True
+            'pool_size': 10
         }
     else:
-        logger.critical("Could not load AWS secrets. Deployment will likely fail.")
+        logger.critical("Could not load AWS secrets.")
+        db_config = {}
 else:
-    # Fallback to local .env / docker-compose variables
     db_config = {
         'host': os.getenv("DB_HOST", "db"),
         'user': os.getenv("DB_USER", "weatheruser"),
         'password': os.getenv("DB_PASSWORD", "weatherpass"),
         'database': os.getenv("DB_NAME", "weather_app"),
         'pool_name': 'weather_app_pool',
-        'pool_size': 10,
-        'pool_reset_session': True
+        'pool_size': 10
     }
 
+# Initialize Connection Pool
+db_pool = None
+try:
+    if db_config:
+        db_pool = pooling.MySQLConnectionPool(**db_config)
+        logger.info("✅ Database connection pool created.")
+except Exception as e:
+    logger.error(f"Failed to create connection pool: {e}")
+
 def get_db_connection():
+    """Get a connection from the pool."""
     try:
+        if db_pool:
+            return db_pool.get_connection()
         return mysql.connector.connect(**db_config)
     except Exception as err:
-        logger.error(f"Database connection logic failed: {err}")
+        logger.error(f"Database connection failed: {err}")
         return None
 
 def init_db():
-    """Wait for MySQL to be ready and initialize the table."""
+    """Wait for MySQL and initialize the table."""
     max_retries = 15
     for attempt in range(max_retries):
         conn = None
         try:
-            logger.info(f"Database initialization attempt {attempt + 1}/{max_retries}...")
+            logger.info(f"DB Init attempt {attempt + 1}/{max_retries}...")
             conn = get_db_connection()
             if conn and conn.is_connected():
-                cursor = conn.cursor(buffered=True)
+                cursor = conn.cursor()
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS weather_history (
                         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -100,11 +107,9 @@ def init_db():
                 """)
                 conn.commit()
                 cursor.close()
-                logger.info("✅ Database schema initialized successfully!")
+                logger.info("✅ Database schema initialized!")
                 return
-            else:
-                logger.warning("DB not ready yet, retrying in 5s...")
-                time.sleep(5)
+            time.sleep(5)
         except Exception as e:
             logger.error(f"Error initializing DB: {e}")
             time.sleep(5)
@@ -112,7 +117,6 @@ def init_db():
             if conn and conn.is_connected():
                 conn.close()
 
-# Run initialization before starting the web server
 init_db()
 
 @app.route("/", methods=["GET", "POST"])
@@ -126,34 +130,44 @@ def index():
             resp = requests.get(url, timeout=10)
             if resp.status_code == 200:
                 data = resp.json()
-                temp, desc = f"{data['current']['temp_c']} °C", data['current']['condition']['text']
+                temp = f"{data['current']['temp_c']} °C"
+                desc = data['current']['condition']['text']
                 
-                # Save to DB
+                # --- SAVE TO DB ---
                 conn = get_db_connection()
                 if conn:
-                    cursor = conn.cursor(buffered=True)
-                    cursor.execute("INSERT INTO weather_history (city, temperature, description) VALUES (%s, %s, %s)", (city, temp, desc))
-                    conn.commit()
-                    cursor.close()
-                    conn.close()
+                    try:
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            "INSERT INTO weather_history (city, temperature, description) VALUES (%s, %s, %s)", 
+                            (city, temp, desc)
+                        )
+                        conn.commit()
+                        logger.info(f"📊 INSERT SUCCESS: Saved {city} to history.")
+                        cursor.close()
+                    except Exception as db_err:
+                        logger.error(f"❌ DATABASE INSERT FAILED: {db_err}")
+                    finally:
+                        conn.close()
+                else:
+                    logger.error("❌ DB CONNECTION FAILED: Connection pool returned None")
                 
                 WEATHER_QUERIES.labels(city=city, status='success').inc()
                 weather_data = {"city": city, "temperature": temp, "description": desc}
         except Exception as e:
             logger.error(f"Weather Fetch Error: {e}")
 
-    # Fetch history for display
+    # --- FETCH HISTORY ---
     conn = get_db_connection()
     if conn:
         try:
-            cursor = conn.cursor(buffered=True)
+            cursor = conn.cursor()
             cursor.execute("SELECT city, temperature, description, timestamp FROM weather_history ORDER BY timestamp DESC LIMIT 10")
             history_data = cursor.fetchall()
             cursor.close()
             conn.close()
         except Exception as e:
             logger.error(f"History Fetch Error: {e}")
-            history_data = []
     
     return render_template("index.html", weather=weather_data, history=history_data)
 
@@ -161,7 +175,6 @@ def index():
 def health():
     return jsonify({"status": "healthy"}), 200
 
-# Mount Prometheus metrics endpoint
 app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {'/metrics': make_wsgi_app(registry)})
 
 if __name__ == "__main__":

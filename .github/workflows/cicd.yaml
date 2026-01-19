@@ -124,6 +124,7 @@ jobs:
             --namespace monitoring \
             --create-namespace \
             --set grafana.service.type=LoadBalancer \
+            --set grafana.service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-scheme"=internet-facing \
             --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
             --wait
 
