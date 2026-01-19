@@ -109,10 +109,34 @@ jobs:
           kubectl apply -f k8s/deployment.yaml
           
           kubectl rollout status deployment/weather-app -n ${{ env.NAMESPACE }} --timeout=300s
+      
+      - name: Deploy Monitoring Stack
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          # We add the 'serviceMonitorSelectorNilUsesHelmValues' flag so it finds your app!
+          helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            --create-namespace \
+            --set grafana.service.type=LoadBalancer \
+            --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+            --wait
 
       - name: Get NLB URL
         run: |
-          echo "Waiting for NLB DNS..."
-          sleep 30
-          echo "Your Application is available at:"
-          kubectl get svc weather-service -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+          echo "Waiting for AWS to provision the Load Balancer DNS..."
+          # Loop until the hostname is actually available
+          for i in {1..20}; do
+            URL=$(kubectl get svc weather-service -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            if [ -n "$URL" ]; then
+              echo "--------------------------------------------------"
+              echo "SUCCESS! Your Application is available at:"
+              echo "http://$URL"
+              echo "--------------------------------------------------"
+              exit 0
+            fi
+            echo "Still waiting... ($i/20)"
+            sleep 15
+          done
+          echo "Timed out waiting for NLB URL."
+          exit 1

@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: weather-app-monitor
+  namespace: monitoring # Important: Create this in the monitoring namespace
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: weather-app
+  namespaceSelector:
+    matchNames:
+      - pythonapp-dev
+  endpoints:
+  - port: web # This must match the name of the port in your service.yaml
+    interval: 30s
