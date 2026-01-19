@@ -116,7 +116,7 @@ jobs:
           helm repo update
           # We add the 'serviceMonitorSelectorNilUsesHelmValues' flag so it finds your app!
           helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
-            --namespace monitoring \
+            --namespace monitoring \                  
             --create-namespace \
             --set grafana.service.type=LoadBalancer \
             --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
