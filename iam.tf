@@ -95,10 +95,14 @@ resource "aws_iam_role" "lbc_role" {
 
 # 2. The Custom Policy (Correct)
 resource "aws_iam_policy" "lbc_iam_policy" {
-  name        = "AWSLoadBalancerControllerIAMPolicy"
+  name = "AWSLoadBalancerControllerIAMPolicy"
+  # Match the description exactly or remove it if AWS shows it as empty
   description = "Permissions for the AWS Load Balancer Controller"
-  # Make sure you ran the 'curl' command to download this file!
-  policy = file("${path.module}/lbc_iam_policy.json")
+  policy      = file("${path.module}/lbc_iam_policy.json")
+
+  lifecycle {
+    ignore_changes = [description]
+  }
 }
 
 # 3. The Attachment (Only ONE block allowed)
