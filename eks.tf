@@ -3,12 +3,16 @@ resource "aws_eks_cluster" "weather_cluster" {
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster_role.arn
 
+  # ADD THIS BLOCK HERE
+  access_config {
+    authentication_mode                         = "API_AND_CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions = true
+  }
+
   vpc_config {
-    # Ensure these match the subnet resource names in your vpc.tf
     subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
   }
 
-  # Ensure the IAM role is ready before the cluster starts
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_policy
   ]
