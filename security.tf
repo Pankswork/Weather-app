@@ -67,15 +67,20 @@ resource "aws_security_group" "eks_nodes_sg" {
 
 # --- 3. DATABASE SG ---
 resource "aws_security_group" "db_sg" {
-  name        = "weather-db-sg"
+  # Use name_prefix instead of name to allow 'create_before_destroy' to work
+  name_prefix = "weather-db-sg-"
   description = "Allow internal VPC traffic to RDS"
   vpc_id      = aws_vpc.weather_vpc.id
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   ingress {
     from_port = 3306
     to_port   = 3306
     protocol  = "tcp"
-    # Allow all traffic from within the VPC (10.0.0.0/16)
+    # This CIDR rule is our 'universal key' to fix the pod connection
     cidr_blocks = [aws_vpc.weather_vpc.cidr_block]
   }
 
