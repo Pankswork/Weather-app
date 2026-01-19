@@ -60,11 +60,11 @@ spec:
           httpGet:
             path: /health
             port: 5000
-          initialDelaySeconds: 20
+          initialDelaySeconds: 80  # Increased from 60
           periodSeconds: 30
         readinessProbe:
           httpGet:
             path: /health
             port: 5000
-          initialDelaySeconds: 10
+          initialDelaySeconds: 40  # Increased from 30
           periodSeconds: 10
