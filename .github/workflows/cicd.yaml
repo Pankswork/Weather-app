@@ -3,11 +3,14 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - '**'          # Stops auto-trigger for all files
   pull_request:
     branches: [main, master]
-  paths-ignore:
+    paths-ignore:
       - '**'
-
+  workflow_dispatch:
+    
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/weather-app
   DOCKER_TAG: ${{ github.sha }}
