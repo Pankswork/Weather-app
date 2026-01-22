@@ -12,8 +12,6 @@ terraform {
     key     = "dev/terraform.tfstate"
     region  = "us-east-1"
     encrypt = true
-    # use_lockfile requires Terraform 1.10+. If using older, use dynamodb_table for locking.
-    # dynamodb_table = "terraform-lock" 
   }
 }
 

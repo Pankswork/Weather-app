@@ -95,8 +95,7 @@ resource "aws_iam_role" "lbc_role" {
 
 # 2. The Custom Policy (Correct)
 resource "aws_iam_policy" "lbc_iam_policy" {
-  name = "AWSLoadBalancerControllerIAMPolicy"
-  # Match the description exactly or remove it if AWS shows it as empty
+  name        = "AWSLoadBalancerControllerIAMPolicy"
   description = "Permissions for the AWS Load Balancer Controller"
   policy      = file("${path.module}/lbc_iam_policy.json")
 

@@ -103,7 +103,7 @@ resource "aws_route_table_association" "private_2" {
   route_table_id = aws_route_table.private_rt.id
 }
 
-# 6. VPC Endpoints (Optional but cost-saving)
+# 6. VPC Endpoints (cost-saving)
 resource "aws_vpc_endpoint" "s3" {
   vpc_id          = aws_vpc.weather_vpc.id
   service_name    = "com.amazonaws.${var.aws_region}.s3"

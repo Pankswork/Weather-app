@@ -1,4 +1,3 @@
--- No need to CREATE DATABASE, Docker does it for us
 USE weather_app;
 
 CREATE TABLE IF NOT EXISTS weather_history (

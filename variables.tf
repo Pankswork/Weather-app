@@ -1,11 +1,9 @@
 variable "aws_region" {
-  type    = string
-  default = "us-east-1"
+  type = string
 }
 
 variable "cluster_name" {
-  type    = string
-  default = "weather-app-eks"
+  type = string
 }
 
 variable "vpc_cidr" {
@@ -14,20 +12,16 @@ variable "vpc_cidr" {
 }
 
 variable "docker_hub_image" {
-  type    = string
-  default = "your_username/weather_app:latest"
+  type = string
 }
 
 variable "secret_name" {
-  type        = string
-  description = "The name of the secret in AWS Secrets Manager"
-  default     = "weather-app-secrets"
+  type = string
 }
 
 # RDS Specific Variables
 variable "mysql_username" {
   type      = string
-  default   = "admin"
   sensitive = true
 }
 

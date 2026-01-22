@@ -45,24 +45,22 @@ resource "aws_eks_node_group" "weather_nodes" {
   scaling_config {
     desired_size = 2
     min_size     = 1
-    max_size     = 3 # Extra room for rolling updates
+    max_size     = 3
   }
 
   update_config {
     max_unavailable = 1
   }
 
-  # Ensure the Node Role has the required policies before nodes join
   depends_on = [
     aws_iam_role_policy_attachment.node_attachments
   ]
 }
 
-# This allows YOUR user to see pods in the AWS Console
-# Add this so your ROOT account can also see the pods
+#
 resource "aws_eks_access_entry" "root_user" {
   cluster_name  = aws_eks_cluster.weather_cluster.name
-  principal_arn = "arn:aws:iam::668227158023:root" # The 'root' principal
+  principal_arn = "arn:aws:iam::668227158023:root"
   type          = "STANDARD"
 }
 

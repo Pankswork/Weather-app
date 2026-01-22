@@ -38,7 +38,7 @@ resource "aws_security_group" "eks_nodes_sg" {
     from_port   = 5000
     to_port     = 5000
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr] # Use cidr_blocks for IP ranges
+    cidr_blocks = [var.vpc_cidr]
   }
 
   # Rule B: Allow nodes to talk to each other (K8s Networking)
@@ -54,7 +54,7 @@ resource "aws_security_group" "eks_nodes_sg" {
     from_port   = 9443
     to_port     = 9443
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr] # Or more specifically: [aws_eks_cluster.weather_cluster.vpc_config[0].cluster_security_group_id]
+    cidr_blocks = [var.vpc_cidr]
   }
 
   egress {
@@ -67,7 +67,6 @@ resource "aws_security_group" "eks_nodes_sg" {
 
 # --- 3. DATABASE SG ---
 resource "aws_security_group" "db_sg" {
-  # Use name_prefix instead of name to allow 'create_before_destroy' to work
   name_prefix = "weather-db-sg-"
   description = "Allow internal VPC traffic to RDS"
   vpc_id      = aws_vpc.weather_vpc.id
