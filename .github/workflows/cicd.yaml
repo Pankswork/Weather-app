@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, master]
     paths-ignore:
-      - '**'          # Stops auto-trigger for all files
+      - '**'          
   pull_request:
     branches: [main, master]
     paths-ignore:
@@ -78,7 +78,6 @@ jobs:
         run: |
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
 
-      # FIX: Ensure Weather_admin has cluster-admin rights within K8s RBAC
       - name: Ensure RBAC for Helm
         run: |
           kubectl create clusterrolebinding weather-admin-helm-binding \
@@ -120,7 +119,6 @@ jobs:
           
           kubectl rollout status deployment/weather-app -n ${{ env.NAMESPACE }} --timeout=300s
       
-      # FIX: Corrected multi-line syntax for Monitoring Stack
       - name: Deploy Monitoring Stack
         run: |
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts

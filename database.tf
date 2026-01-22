@@ -9,7 +9,7 @@ resource "aws_db_subnet_group" "weather_db_subnet_group" {
 # 2. RDS MySQL Instance
 resource "aws_db_instance" "weather_db" {
   allocated_storage      = 20
-  storage_type           = "gp3" # Optimized storage
+  storage_type           = "gp3"
   db_name                = "weather_app"
   engine                 = "mysql"
   engine_version         = "8.0"
@@ -27,9 +27,9 @@ resource "aws_db_instance" "weather_db" {
 
 # 3. AWS Secrets Manager Integration
 resource "aws_secretsmanager_secret" "db_secret" {
-  name                    = "weather-app-db-creds" # Simplified name
+  name                    = "weather-app-db-creds"
   description             = "RDS MySQL credentials for Weather App"
-  recovery_window_in_days = 0 # Allows for immediate deletion/recreation during testing
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "db_secret_val" {
@@ -43,6 +43,5 @@ resource "aws_secretsmanager_secret_version" "db_secret_val" {
     dbname   = "weather_app"
   })
 
-  # Ensures the address actually exists before trying to save the secret
   depends_on = [aws_db_instance.weather_db]
 }
