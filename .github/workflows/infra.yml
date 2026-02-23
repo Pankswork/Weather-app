@@ -1,0 +1,59 @@
+name: 🏗️ Infrastructure Provisioning
+
+on:
+  workflow_dispatch: 
+  push:
+    branches: [main]
+    paths:
+      - 'terraform/**'
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: weather-app-eks
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        run: |
+          terraform init
+          terraform apply -auto-approve \
+            -var="mysql_username=${{ secrets.DB_USERNAME }}" \
+            -var="mysql_password=${{ secrets.DB_PASSWORD }}"
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Update Kubeconfig
+        run: aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Install ALB Controller (The Entry Point)
+        run: 
+          helm repo add eks https://aws.github.io/eks-charts
+          VPC_ID=$(terraform -chdir=terraform output -raw vpc_id)
+          helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+            -n kube-system \
+            --set clusterName=${{ env.EKS_CLUSTER_NAME }} \
+            --set region=${{ env.AWS_REGION }} \
+            --set vpcId=$VPC_ID
+          
+
+      - name: Install Monitoring (The Visibility)
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+            --namespace monitoring --create-namespace --wait
