@@ -12,7 +12,35 @@ env:
   EKS_CLUSTER_NAME: weather-app-eks
 
 jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 1. Gitleaks: Check for hardcoded AWS/DB credentials in TF code
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2. Tfsec: Scan for AWS infrastructure misconfigurations
+      - name: Tfsec Scan
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: ./terraform
+
+      # 3. Checkov: Advanced IaC security & compliance scanning
+      - name: Checkov Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: terraform/
+          framework: terraform
+          soft_fail: false # Set to true if you don't want it to block the build yet
+
   terraform:
+    needs: security-scan # Only provision if the security scans pass
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,10 +55,17 @@ jobs:
         with:
           terraform_wrapper: false
 
-      - name: Terraform Apply
+      - name: Terraform Init & Plan
         working-directory: ./terraform
         run: |
           terraform init
+          terraform plan \
+            -var="mysql_username=${{ secrets.DB_USERNAME }}" \
+            -var="mysql_password=${{ secrets.DB_PASSWORD }}"
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        run: |
           terraform apply -auto-approve \
             -var="mysql_username=${{ secrets.DB_USERNAME }}" \
             -var="mysql_password=${{ secrets.DB_PASSWORD }}"
@@ -41,8 +76,8 @@ jobs:
       - name: Update Kubeconfig
         run: aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
 
-      - name: Install ALB Controller (The Entry Point)
-        run: 
+      - name: Install ALB Controller
+        run: |
           helm repo add eks https://aws.github.io/eks-charts
           VPC_ID=$(terraform -chdir=terraform output -raw vpc_id)
           helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
@@ -50,9 +85,8 @@ jobs:
             --set clusterName=${{ env.EKS_CLUSTER_NAME }} \
             --set region=${{ env.AWS_REGION }} \
             --set vpcId=$VPC_ID
-          
 
-      - name: Install Monitoring (The Visibility)
+      - name: Install Monitoring
         run: |
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
           helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \

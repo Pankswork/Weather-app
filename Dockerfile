@@ -1,28 +1,28 @@
-# Stage 1: Build stage
+# --- Stage 1: Builder ---
 FROM python:3.10-slim-bullseye as builder
 
 WORKDIR /app
-RUN apt-get update && apt-get install -y gcc curl python3-dev
+RUN apt-get update && apt-get install -y gcc python3-dev
+
 COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+# We install everything into the /install folder
+RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
 
-# Stage 2: Final Runtime stage
-FROM python:3.10-slim-bullseye
+# --- Stage 2: Final (Distroless) ---
+FROM gcr.io/distroless/python3-debian11:nonroot
 
-RUN groupadd -r appuser && useradd -r -g appuser appuser
 WORKDIR /app
 
-# Copy only the installed packages from builder
-COPY --from=builder /root/.local /home/appuser/.local
-COPY . .
+# Copy the prefix-installed packages directly into /usr/local
+# This places gunicorn in /usr/local/bin and libs in /usr/local/lib
+COPY --from=builder /install /usr/local
+COPY --chown=nonroot:nonroot . .
 
-RUN chown -R appuser:appuser /app
-USER appuser
-
-# Ensure the local pip binaries are in the path
-ENV PATH=/home/appuser/.local/bin:$PATH \
-    PYTHONUNBUFFERED=1
+# Set the path so the system finds the gunicorn module
+ENV PYTHONPATH=/usr/local/lib/python3.10/site-packages
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 5000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--access-logfile", "-", "app:app"]
+# Since there is no shell, we call gunicorn as a module via python
+CMD ["/usr/bin/python3", "-m", "gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
