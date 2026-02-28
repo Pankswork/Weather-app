@@ -1,3 +1,12 @@
+Weather App
+<img width="1920" height="1020" alt="Screenshot 2026-01-20 034924" src="https://github.com/user-attachments/assets/f46dfbc4-0ee3-4f83-a9aa-beb4028c9dd8" />
+
+<img width="1920" height="1020" alt="Screenshot 2026-01-20 035237" src="https://github.com/user-attachments/assets/914a1847-003f-4317-91ca-b19536224e47" />
+
+<img width="1920" height="1032" alt="Screenshot 2026-01-20 035148" src="https://github.com/user-attachments/assets/09079518-82e8-4dde-8c28-c855e99b0237" />
+
+<img width="1920" height="1032" alt="Screenshot 2026-01-20 035108" src="https://github.com/user-attachments/assets/7170a848-9c31-4f25-9d8d-cfe2ad22d113" />
+
 Create a weather app using python and flask:
  create s3 bucket first :
  
@@ -45,6 +54,7 @@ once pushed go to actions > left side top > cicd piple > run workflow(since auto
 
 # 7. Access the application
 Once the pipeline is complete, you can access the application at the URL provided by the Load Balancer.
+
 
 
 
