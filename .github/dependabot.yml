@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # 1. Keep GitHub Actions up to date (e.g., checkout@v3 -> checkout@v4)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # 2. Keep Docker base images up to date
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # 3. Keep Python dependencies up to date (Requirements for Weather App)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "daily" # Checks for security patches every day
+
+  # 4. Keep Terraform modules up to date
+  - package-ecosystem: "terraform"
+    directory: "/terraform"
+    schedule:
+      interval: "weekly"
