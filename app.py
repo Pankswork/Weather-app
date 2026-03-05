@@ -25,9 +25,8 @@ logger = logging.getLogger(__name__)
 registry = CollectorRegistry()
 WEATHER_QUERIES = Counter('weather_queries_total', 'Total queries', ['city', 'status'], registry=registry)
 
-def get_secret():
-    """Fetch database credentials from AWS Secrets Manager."""
-    secret_name = os.getenv("AWS_SECRET_NAME", "weather-app-db-creds")
+def get_secret(secret_name):
+    """Fetch credentials from AWS Secrets Manager."""
     region_name = os.getenv("AWS_REGION", "us-east-1")
 
     session = boto3.session.Session()
@@ -43,7 +42,8 @@ def get_secret():
 # Determine Database Configuration
 if os.getenv("USE_AWS_SECRETS", "false").lower() == "true":
     logger.info("Fetching configuration from AWS Secrets Manager...")
-    creds = get_secret()
+    db_secret_name = os.getenv("AWS_SECRET_NAME", "weather-app-db-creds")
+    creds = get_secret(db_secret_name)
     if creds:
         db_config = {
             'host': creds['host'],
@@ -125,7 +125,16 @@ def index():
     if request.method == "POST":
         city = request.form.get("city", "").strip()
         try:
-            api_key = os.getenv("WEATHER_API_KEY")
+            if os.getenv("USE_AWS_SECRETS", "false").lower() == "true":
+                api_secret_name = os.getenv("AWS_API_KEY_SECRET_NAME", "weather-api-key-secret")
+                api_secret = get_secret(api_secret_name)
+                api_key = api_secret.get("weather_api_key") if api_secret else None
+            else:
+                api_key = os.getenv("WEATHER_API_KEY")
+
+            if not api_key:
+                raise Exception("Missing WEATHER_API_KEY")
+
             url = f"http://api.weatherapi.com/v1/current.json?key={api_key}&q={city}"
             resp = requests.get(url, timeout=10)
             if resp.status_code == 200:

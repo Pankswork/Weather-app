@@ -1,15 +1,5 @@
-# 1. THE BRIDGE: ServiceAccount
-# This links your Pod to the IAM Role 'weather-app-pod-role'
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: weather-app-sa
-  namespace: pythonapp-dev
-  annotations:
-    # REPLACEMENT REQUIRED: Put your AWS Account ID here
-    eks.amazonaws.com/role-arn: arn:aws:iam::668227158023:role/weather-app-pod-role
----
-# 2. THE APP: Deployment
+
+# 1. THE APP: Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -43,8 +33,8 @@ spec:
           value: "us-east-1"
         - name: AWS_SECRET_NAME
           value: "weather-app-db-creds"
-        - name: WEATHER_API_KEY
-          value: "483e983c9fe94662b4a132638252407"
+        - name: AWS_API_KEY_SECRET_NAME
+          value: "weather-api-key-secret"
 
         # Resources: Prevents one pod from crashing the whole node
         resources:

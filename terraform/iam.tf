@@ -65,7 +65,10 @@ resource "aws_iam_policy" "app_secrets_policy" {
     Statement = [{
       Action   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
       Effect   = "Allow"
-      Resource = ["${aws_secretsmanager_secret.db_secret.arn}*"]
+      Resource = [
+        "${aws_secretsmanager_secret.db_secret.arn}*",
+        "${aws_secretsmanager_secret.weather_api_key.arn}*"
+      ]
     }]
   })
 }
