@@ -1,4 +1,4 @@
-name: 🚀 App Deploy
+name: App Deploy
 
 on:
   workflow_dispatch:
@@ -12,18 +12,31 @@ env:
   EKS_CLUSTER_NAME: weather-app-eks
 
 jobs:
-  # New Security Gate Job
+  # Security Gate: All scans must pass before we build anything
   security-and-quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Required for Gitleaks history and SonarQube scan
+          fetch-depth: 0 
 
       - name: Gitleaks Scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- NEW: SCA (Software Composition Analysis) ---
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Run pip-audit (SCA)
+        run: |
+          pip install pip-audit
+          # Scans requirements.txt and fails on any vulnerability
+          pip-audit -r requirements.txt --vulnerability-service osv
+      # --- END NEW STEP ---
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
@@ -37,11 +50,11 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'table'
-          exit-code: '1' # Fails the job if High/Critical vulnerabilities exist
+          exit-code: '1'
           severity: 'CRITICAL,HIGH'
 
   build-and-push:
-    needs: security-and-quality # Only starts if scans pass
+    needs: security-and-quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,7 +70,6 @@ jobs:
           push: true
           tags: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}, ${{ env.DOCKER_IMAGE }}:latest
 
-      # Added: Trivy Image Scan after build
       - name: Trivy Image Scan
         uses: aquasecurity/trivy-action@master
         with:

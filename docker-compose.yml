@@ -12,6 +12,7 @@ services:
     environment:
       - DB_HOST=db
       - DB_PASSWORD=${DB_PASSWORD} # Injected from host/shell
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
     depends_on:
       db:
         condition: service_healthy

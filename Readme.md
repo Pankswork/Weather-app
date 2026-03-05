@@ -36,6 +36,7 @@ DB_PASSWORD
 DB_USERNAME
 DOCKER_PASSWORD
 DOCKER_USERNAME
+WEATHER_API_KEY
 
 # 4. create terraform.tfvars file
 aws_region       = "your aws region"

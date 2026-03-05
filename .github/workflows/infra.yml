@@ -1,4 +1,4 @@
-name: 🏗️ Infrastructure Provisioning
+name: Infrastructure Provisioning
 
 on:
   workflow_dispatch: 
@@ -61,14 +61,16 @@ jobs:
           terraform init
           terraform plan \
             -var="mysql_username=${{ secrets.DB_USERNAME }}" \
-            -var="mysql_password=${{ secrets.DB_PASSWORD }}"
+            -var="mysql_password=${{ secrets.DB_PASSWORD }}" \
+            -var="weather_api_key=${{ secrets.WEATHER_API_KEY }}"
 
       - name: Terraform Apply
         working-directory: ./terraform
         run: |
           terraform apply -auto-approve \
             -var="mysql_username=${{ secrets.DB_USERNAME }}" \
-            -var="mysql_password=${{ secrets.DB_PASSWORD }}"
+            -var="mysql_password=${{ secrets.DB_PASSWORD }}" \
+            -var="weather_api_key=${{ secrets.WEATHER_API_KEY }}"
 
       - name: Setup Helm
         uses: azure/setup-helm@v4.2.0
