@@ -1,28 +1,32 @@
 # --- Stage 1: Builder ---
-FROM python:3.11-slim-bookworm as builder
+FROM python:3.11-alpine as builder
 
 WORKDIR /app
-RUN apt-get update && apt-get install -y gcc python3-dev
+# Install build dependencies for alpine
+RUN apk add --no-cache gcc musl-dev python3-dev libffi-dev
 
 COPY requirements.txt .
 # We install everything into the /install folder
 RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
 
-# --- Stage 2: Final (Distroless) ---
-FROM gcr.io/distroless/python3-debian12:nonroot
+# --- Stage 2: Final ---
+FROM python:3.11-alpine
 
 WORKDIR /app
 
 # Copy the prefix-installed packages directly into /usr/local
-# This places gunicorn in /usr/local/bin and libs in /usr/local/lib
 COPY --from=builder /install /usr/local
-COPY --chown=nonroot:nonroot . .
+COPY . .
 
-# Set the path so the system finds the gunicorn module
+# Run as a non-root user for security
+RUN addgroup -S nonroot && adduser -S nonroot -G nonroot && \
+    chown -R nonroot:nonroot /app
+
+USER nonroot
+
 ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 5000
 
-# Since there is no shell, we call gunicorn as a module via python
-CMD ["/usr/bin/python3", "-m", "gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
