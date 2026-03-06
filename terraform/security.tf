@@ -12,7 +12,7 @@ resource "aws_security_group" "alb_sg" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr] # More restricted, adjust if public access is strictly needed
   }
 
   # RECOMMENDED: Add port 443 if you plan to use SSL/HTTPS
@@ -23,7 +23,7 @@ resource "aws_security_group" "alb_sg" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr] # More restricted
   }
 
   #tfsec:ignore:aws-ec2-no-public-egress-sgr
@@ -33,7 +33,7 @@ resource "aws_security_group" "alb_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr] # More restricted
   }
 }
 
@@ -77,7 +77,7 @@ resource "aws_security_group" "eks_nodes_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr] # Consider VPC endpoints or NAT gateway if 0.0.0.0/0 was for internet
   }
 }
 
