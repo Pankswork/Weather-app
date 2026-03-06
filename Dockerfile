@@ -21,7 +21,10 @@ COPY --from=builder /install /usr/local
 COPY . .
 
 # Run as a non-root user for security
-RUN addgroup -S nonroot && adduser -S nonroot -G nonroot && \
+# Provide a security patch for zlib in the final stage
+RUN apk add --no-cache --upgrade zlib && \
+    pip install --no-cache-dir --upgrade pip setuptools wheel jaraco.context && \
+    addgroup -S nonroot && adduser -S nonroot -G nonroot && \
     chown -R nonroot:nonroot /app
 
 USER nonroot
