@@ -1,6 +1,6 @@
+#checkov:skip=CKV_AWS_149: "Default AWS managed KMS key is sufficient for this project"
+#tfsec:ignore:aws-ssm-secret-use-customer-key
 resource "aws_secretsmanager_secret" "weather_api_key" {
-    #tfsec:ignore:aws-ssm-secret-use-customer-key
-    #checkov:skip=CKV_AWS_149: "Default AWS managed KMS key is sufficient for this project"
     name                    = "weather-api-key-secret"
     description             = "Weather App API Key"
     recovery_window_in_days = 0
