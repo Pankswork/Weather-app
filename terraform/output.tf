@@ -14,3 +14,8 @@ output "vpc_id" {
   value       = aws_vpc.weather_vpc.id
   description = "The ID of the VPC"
 }
+
+output "lbc_role_arn" {
+  value       = aws_iam_role.lbc_role.arn
+  description = "The ARN of the IAM role for the AWS Load Balancer Controller"
+}
