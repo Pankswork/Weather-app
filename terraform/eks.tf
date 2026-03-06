@@ -12,6 +12,7 @@ resource "aws_eks_cluster" "weather_cluster" {
   vpc_config {
     subnet_ids              = [aws_subnet.private_1.id, aws_subnet.private_2.id]
     #tfsec:ignore:aws-eks-no-public-cluster-access
+    #tfsec:ignore:aws-eks-no-public-cluster-access-to-cidr
     #checkov:skip=CKV_AWS_39: "Public endpoint access required for GitHub Actions runners to connect and deploy Helm charts"
     endpoint_public_access  = true
     endpoint_private_access = true
