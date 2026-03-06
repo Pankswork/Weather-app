@@ -14,6 +14,7 @@ resource "aws_db_instance" "weather_db" {
   #checkov:skip=CKV_AWS_226: "Auto minor version upgrades disabled for stability in dev"
   #checkov:skip=CKV_AWS_129: "RDS logging disabled to save costs in dev"
   #checkov:skip=CKV2_AWS_60: "Copy tags to snapshots not needed since final snapshots are skipped entirely"
+  #checkov:skip=CKV_AWS_133: "RDS backup retention disabled (0) to comply with AWS Free Tier bounds"
   allocated_storage      = 20
   storage_type           = "gp3"
   db_name                = "weather_app"
@@ -25,6 +26,7 @@ resource "aws_db_instance" "weather_db" {
   db_subnet_group_name                = aws_db_subnet_group.weather_db_subnet_group.name
   vpc_security_group_ids              = [aws_security_group.db_sg.id]
   storage_encrypted                   = true
+  #tfsec:ignore:aws-rds-backup-retention-specified
   backup_retention_period             = 0
   iam_database_authentication_enabled = true
   
