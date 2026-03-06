@@ -1,6 +1,6 @@
 # 1. VPC Setup
-#tfsec:ignore:aws-ec2-require-vpc-flow-logs-for-all-vpcs
 #checkov:skip=CKV_AWS_163: "VPC Flow Logs not required for cost optimization"
+#tfsec:ignore:aws-ec2-require-vpc-flow-logs-for-all-vpcs
 resource "aws_vpc" "weather_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
