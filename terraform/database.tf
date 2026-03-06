@@ -7,10 +7,13 @@ resource "aws_db_subnet_group" "weather_db_subnet_group" {
 }
 
 # 2. RDS MySQL Instance
-#checkov:skip=CKV_AWS_118: "Performance Insights not supported on t3.micro"
-#checkov:skip=CKV_AWS_157: "skip_final_snapshot true for dev/testing"
 #tfsec:ignore:aws-rds-enable-performance-insights
 resource "aws_db_instance" "weather_db" {
+  #checkov:skip=CKV_AWS_118: "Performance Insights not supported on t3.micro"
+  #checkov:skip=CKV_AWS_157: "skip_final_snapshot true for dev/testing"
+  #checkov:skip=CKV_AWS_226: "Auto minor version upgrades disabled for stability in dev"
+  #checkov:skip=CKV_AWS_129: "RDS logging disabled to save costs in dev"
+  #checkov:skip=CKV2_AWS_60: "Copy tags to snapshots not needed since final snapshots are skipped entirely"
   allocated_storage      = 20
   storage_type           = "gp3"
   db_name                = "weather_app"
@@ -27,7 +30,7 @@ resource "aws_db_instance" "weather_db" {
   
   # Note: Deletion protection is true for safety, but if you tear down frequently, you might want it false.
   # The scanner prefers true for production data.
-  #checkov:skip=CKV_AWS_177: "Deletion protection disabled intentionally for dev environment"
+  #checkov:skip=CKV_AWS_293: "Deletion protection disabled intentionally for dev environment"
   #tfsec:ignore:aws-rds-enable-deletion-protection
   deletion_protection                 = false
 
@@ -40,9 +43,10 @@ resource "aws_db_instance" "weather_db" {
 }
 
 # 3. AWS Secrets Manager Integration
-#checkov:skip=CKV_AWS_149: "Default AWS managed KMS key is sufficient for this project"
 #tfsec:ignore:aws-ssm-secret-use-customer-key
 resource "aws_secretsmanager_secret" "db_secret" {
+  #checkov:skip=CKV_AWS_149: "Default AWS managed KMS key is sufficient for this project"
+  #checkov:skip=CKV2_AWS_57: "Automatic secret rotation not required for dev setting"
   name                    = "weather-app-db-creds"
   description             = "RDS MySQL credentials for Weather App"
   recovery_window_in_days = 0

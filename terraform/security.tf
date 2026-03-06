@@ -1,5 +1,6 @@
 # --- 1. ALB SECURITY GROUP (Public Facing) ---
 resource "aws_security_group" "alb_sg" {
+  #checkov:skip=CKV2_AWS_5: "ALB Security group is attached dynamically via Helm Controller, Terraform cannot see the attachment."
   name        = "weather-alb-sg"
   description = "Public web traffic for Weather App"
   vpc_id      = aws_vpc.weather_vpc.id
@@ -39,6 +40,7 @@ resource "aws_security_group" "alb_sg" {
 
 # --- 2. EKS NODE SECURITY GROUP ---
 resource "aws_security_group" "eks_nodes_sg" {
+  #checkov:skip=CKV2_AWS_5: "Node Security group is attached by EKS naturally, Terraform module abstract handles it."
   name        = "weather-eks-nodes-sg"
   description = "EKS Worker Node communication"
   vpc_id      = aws_vpc.weather_vpc.id
