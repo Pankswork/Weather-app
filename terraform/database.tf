@@ -25,7 +25,7 @@ resource "aws_db_instance" "weather_db" {
   db_subnet_group_name                = aws_db_subnet_group.weather_db_subnet_group.name
   vpc_security_group_ids              = [aws_security_group.db_sg.id]
   storage_encrypted                   = true
-  backup_retention_period             = 7
+  backup_retention_period             = 0
   iam_database_authentication_enabled = true
   
   # Note: Deletion protection is true for safety, but if you tear down frequently, you might want it false.

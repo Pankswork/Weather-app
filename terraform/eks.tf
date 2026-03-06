@@ -13,7 +13,6 @@ resource "aws_eks_cluster" "weather_cluster" {
     subnet_ids              = [aws_subnet.private_1.id, aws_subnet.private_2.id]
     endpoint_public_access  = false
     endpoint_private_access = true
-    public_access_cidrs     = ["10.0.0.0/8"]
   }
 
   # Enable Control Plane Logging
