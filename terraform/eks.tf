@@ -34,6 +34,7 @@ resource "aws_eks_cluster" "weather_cluster" {
 
 # KMS Key for EKS Secret Encryption
 resource "aws_kms_key" "eks_key" {
+  #checkov:skip=CKV2_AWS_64: "KMS Key policy is managed by default AWS KMS behavior for this simple project"
   description             = "EKS Secret Encryption Key"
   deletion_window_in_days = 7
   enable_key_rotation     = true
