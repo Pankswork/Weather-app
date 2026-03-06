@@ -78,19 +78,3 @@ resource "aws_eks_node_group" "weather_nodes" {
   ]
 }
 
-#
-resource "aws_eks_access_entry" "root_user" {
-  cluster_name  = aws_eks_cluster.weather_cluster.name
-  principal_arn = "arn:aws:iam::052301220733:root"
-  type          = "STANDARD"
-}
-
-resource "aws_eks_access_policy_association" "root_admin" {
-  cluster_name  = aws_eks_cluster.weather_cluster.name
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-  principal_arn = "arn:aws:iam::052301220733:root"
-
-  access_scope {
-    type = "cluster"
-  }
-}
