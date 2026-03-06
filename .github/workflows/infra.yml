@@ -62,7 +62,9 @@ jobs:
           terraform plan \
             -var="mysql_username=${{ secrets.DB_USERNAME }}" \
             -var="mysql_password=${{ secrets.DB_PASSWORD }}" \
-            -var="weather_api_key=${{ secrets.WEATHER_API_KEY }}"
+            -var="weather_api_key=${{ secrets.WEATHER_API_KEY }}" \
+            -var="aws_region=${{ env.AWS_REGION }}" \
+            -var="cluster_name=${{ env.EKS_CLUSTER_NAME }}"
 
       - name: Terraform Apply
         working-directory: ./terraform
@@ -70,7 +72,9 @@ jobs:
           terraform apply -auto-approve \
             -var="mysql_username=${{ secrets.DB_USERNAME }}" \
             -var="mysql_password=${{ secrets.DB_PASSWORD }}" \
-            -var="weather_api_key=${{ secrets.WEATHER_API_KEY }}"
+            -var="weather_api_key=${{ secrets.WEATHER_API_KEY }}" \
+            -var="aws_region=${{ env.AWS_REGION }}" \
+            -var="cluster_name=${{ env.EKS_CLUSTER_NAME }}"
 
       - name: Setup Helm
         uses: azure/setup-helm@v4.2.0
