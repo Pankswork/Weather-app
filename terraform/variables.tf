@@ -11,13 +11,6 @@ variable "vpc_cidr" {
   default = "10.0.0.0/16"
 }
 
-variable "docker_hub_image" {
-  type = string
-}
-
-variable "secret_name" {
-  type = string
-}
 
 # RDS Specific Variables
 variable "mysql_username" {
