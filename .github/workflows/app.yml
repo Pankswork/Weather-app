@@ -46,8 +46,8 @@ jobs:
           SONAR_HOST_URL: "https://sonarcloud.io"
         with:
           args: >
-            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.organization="${{ secrets.SONAR_ORGANIZATION }}"
+            -Dsonar.projectKey="${{ secrets.SONAR_PROJECT_KEY }}"
             -Dsonar.sources=.
             -Dsonar.python.version=3
 
