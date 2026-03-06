@@ -9,3 +9,8 @@ output "cluster_endpoint" {
 output "rds_endpoint" {
   value = aws_db_instance.weather_db.address
 }
+
+output "vpc_id" {
+  value       = aws_vpc.weather_vpc.id
+  description = "The ID of the VPC"
+}
