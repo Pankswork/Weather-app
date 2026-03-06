@@ -82,3 +82,23 @@ resource "aws_eks_node_group" "weather_nodes" {
   ]
 }
 
+# --- 4. CI/CD Runner Cluster Access ---
+# The IAM User/Role running Terraform (e.g. GitHub Actions) needs
+# permissions to access the cluster to run Helm and Kubectl commands
+data "aws_caller_identity" "current" {}
+
+resource "aws_eks_access_entry" "ci_runner" {
+  cluster_name  = aws_eks_cluster.weather_cluster.name
+  principal_arn = data.aws_caller_identity.current.arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "ci_runner_admin" {
+  cluster_name  = aws_eks_cluster.weather_cluster.name
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = data.aws_caller_identity.current.arn
+
+  access_scope {
+    type = "cluster"
+  }
+}
