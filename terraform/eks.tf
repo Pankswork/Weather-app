@@ -1,5 +1,4 @@
-#tfsec:ignore:aws-eks-no-public-cluster-access
-#tfsec:ignore:aws-eks-no-public-cluster-access-to-cidr
+# --- 1. EKS Cluster Configuration ---
 #checkov:skip=CKV_AWS_39: "Public endpoint access required for GitHub Actions runners"
 resource "aws_eks_cluster" "weather_cluster" {
   name     = var.cluster_name
@@ -11,6 +10,8 @@ resource "aws_eks_cluster" "weather_cluster" {
     bootstrap_cluster_creator_admin_permissions = true
   }
 
+  #tfsec:ignore:aws-eks-no-public-cluster-access-to-cidr
+  #tfsec:ignore:aws-eks-no-public-cluster-access
   vpc_config {
     subnet_ids              = [aws_subnet.private_1.id, aws_subnet.private_2.id]
     endpoint_public_access  = true
