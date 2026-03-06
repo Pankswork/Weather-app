@@ -1,5 +1,5 @@
 # --- Stage 1: Builder ---
-FROM python:3.11-alpine as builder
+FROM python:3.14-alpine as builder
 
 WORKDIR /app
 # Install build dependencies for alpine
@@ -12,7 +12,7 @@ RUN pip install --upgrade pip setuptools wheel jaraco.context
 RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
 
 # --- Stage 2: Final ---
-FROM python:3.11-alpine
+FROM python:3.14-alpine
 
 WORKDIR /app
 
