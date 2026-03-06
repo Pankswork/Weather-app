@@ -6,6 +6,8 @@ WORKDIR /app
 RUN apk add --no-cache gcc musl-dev python3-dev libffi-dev
 
 COPY requirements.txt .
+# Upgrade build tools to patch python module CVEs like jaraco.context and wheel
+RUN pip install --upgrade pip setuptools wheel jaraco.context
 # We install everything into the /install folder
 RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
 
