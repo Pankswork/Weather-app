@@ -1,6 +1,7 @@
 # --- 1. EKS Cluster Configuration ---
-#checkov:skip=CKV_AWS_39: "Public endpoint access required for GitHub Actions runners"
 resource "aws_eks_cluster" "weather_cluster" {
+  #checkov:skip=CKV_AWS_39: "Public endpoint access required for GitHub Actions runners"
+  #checkov:skip=CKV_AWS_38: "Public CIDR 0.0.0.0/0 required for GitHub Actions runners"
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster_role.arn
 
