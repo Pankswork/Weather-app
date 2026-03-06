@@ -102,5 +102,6 @@ jobs:
       - name: K8s Rollout
         run: |
           sed -i "s|image: ${{ env.DOCKER_IMAGE }}:.*|image: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}|g" k8s/deployment.yaml
+          kubectl create namespace pythonapp-dev --dry-run=client -o yaml | kubectl apply -f -
           kubectl apply -f k8s/
           kubectl rollout status deployment/weather-app -n pythonapp-dev
