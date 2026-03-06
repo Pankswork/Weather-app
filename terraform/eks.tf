@@ -10,12 +10,33 @@ resource "aws_eks_cluster" "weather_cluster" {
   }
 
   vpc_config {
-    subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
+    subnet_ids              = [aws_subnet.private_1.id, aws_subnet.private_2.id]
+    endpoint_public_access  = false
+    endpoint_private_access = true
+    public_access_cidrs     = ["10.0.0.0/8"]
+  }
+
+  # Enable Control Plane Logging
+  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+
+  # KMS Encryption for K8s Secrets
+  encryption_config {
+    resources = ["secrets"]
+    provider {
+      key_arn = aws_kms_key.eks_key.arn
+    }
   }
 
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_policy
   ]
+}
+
+# KMS Key for EKS Secret Encryption
+resource "aws_kms_key" "eks_key" {
+  description             = "EKS Secret Encryption Key"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
 }
 
 # --- 2. OIDC Provider Logic (The "Handshake") ---

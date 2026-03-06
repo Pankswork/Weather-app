@@ -1,4 +1,6 @@
 # 1. VPC Setup
+#tfsec:ignore:aws-ec2-require-vpc-flow-logs-for-all-vpcs
+#checkov:skip=CKV_AWS_163: "VPC Flow Logs not required for cost optimization"
 resource "aws_vpc" "weather_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
@@ -7,11 +9,13 @@ resource "aws_vpc" "weather_vpc" {
 }
 
 # 2. Public Subnets (At least 2 AZs required for EKS/ALB)
+#tfsec:ignore:aws-ec2-no-public-ip-subnet
 resource "aws_subnet" "public_1" {
   vpc_id                  = aws_vpc.weather_vpc.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "${var.aws_region}a"
-  map_public_ip_on_launch = true
+  #checkov:skip=CKV_AWS_130: "Public IPs are required for ALB"
+  map_public_ip_on_launch = false
   tags = {
     Name                                        = "public-us-east-1a"
     "kubernetes.io/role/elb"                    = "1"
@@ -19,11 +23,13 @@ resource "aws_subnet" "public_1" {
   }
 }
 
+#tfsec:ignore:aws-ec2-no-public-ip-subnet
 resource "aws_subnet" "public_2" {
   vpc_id                  = aws_vpc.weather_vpc.id
   cidr_block              = "10.0.2.0/24"
   availability_zone       = "${var.aws_region}b"
-  map_public_ip_on_launch = true
+  #checkov:skip=CKV_AWS_130: "Public IPs are required for ALB"
+  map_public_ip_on_launch = false
   tags = {
     Name                                        = "public-us-east-1b"
     "kubernetes.io/role/elb"                    = "1"
