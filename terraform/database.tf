@@ -26,7 +26,7 @@ resource "aws_db_instance" "weather_db" {
   db_subnet_group_name                = aws_db_subnet_group.weather_db_subnet_group.name
   vpc_security_group_ids              = [aws_security_group.db_sg.id]
   storage_encrypted                   = true
-  #tfsec:ignore:aws-rds-backup-retention-specified
+  #tfsec:ignore:aws-rds-specify-backup-retention
   backup_retention_period             = 0
   iam_database_authentication_enabled = true
   
