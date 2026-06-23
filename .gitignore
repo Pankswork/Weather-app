@@ -32,4 +32,7 @@ terraform.rc
 .DS_Store
 Thumbs.db
 
+# Gitleaks
+gitleaks*.tar.gz
+
 
